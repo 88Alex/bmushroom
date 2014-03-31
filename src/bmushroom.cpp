@@ -5,11 +5,21 @@
 * Correspondence: alex.kitaev58@gmail.com
 */
 
+// comment out this next line for releases
+#define DEBUG_ON
+
+#ifdef DEBUG_ON
+#define DEBUG(code) code
+#else
+#define DEBUG(code)
+#endif
+
 #include <string>
 #include <fstream>
 #include <iostream>
 #include <vector>
 #include <cstdlib> // for exit(), etc.
+#include <regex>
 #include "stack.cpp"
 
 using namespace std;
@@ -22,18 +32,30 @@ enum Direction
 void displayHelp()
 {
 	cout << "Usage: bmushroom [options] program.bf" << endl;
+	cout << endl;
 	cout << "Options:" << endl;
-	cout << "  -a, immediately abort if an erroneous instruction is given"
-		<< endl;
-	cout << "  -w: if an erroneous instruction is given, print a warning "
-		<< "but do not shut down the program" << endl;
-	cout << "  (note: default action on erroneous instructions "
-		<< "is to do nothing)" << endl;
+	cout << "  -a, --abort-on-error:" << endl;
+	cout << "    immediately abort if an error occurs" << endl;
+	cout << "    (i.e. stack underflow or division by 0)" << endl;
+	cout << "  -w, --warn-on-error:" << endl;
+	cout << "    warn, but do not abort, if an error occurs" << endl;
+	cout << "  " << endl;
+	cout << "  (note: default action on errors is to do nothing)" << endl;
+	cout << "  (note: it is strongly advised to use either -a or -w)" << endl;
 	cout << "  (note: -a overrides -w if both are set)" << endl;
-	cout << "  -l: print a newline after outputting something" << endl;
-	cout << "    (except if the value is whitespace)" << endl;
-	cout << "  -s: print a space after outputting anything" << endl;
-	cout << "    (except if the value is whitespace)" << endl;
+	cout << endl;
+	cout << "  -l: print a newline after outputting a number" << endl;
+	cout << "    (useful when outputting a long list of numbers)" << endl;
+	cout << "  -s: print a space after outputting a number" << endl;
+	cout << "    (useful when outputting a long list of numbers)" << endl;
+	cout << "  (note: -l overrides -s if both are set)" << endl;
+	cout << endl;
+	cout << "  -i, --abort-on-invalid:" << endl;
+	cout << "    abort immediately if an invalid command is executed" << endl;
+	cout << "    (useful to make sure comments aren't being executed)" << endl;
+	cout << "  -I, --warn-on-invalid:" << endl;
+	cout << "    warn if an invalid command is executed" << endl;
+	cout << "    (useful when debugging)" << endl;
 }
 
 int main(int argc, char** argv)
@@ -77,15 +99,16 @@ int main(int argc, char** argv)
 		}
 	}
 
-	string filename = argv[argc]; // the last of the arguments
+	string filename = argv[argc - 1]; // the last of the arguments
 	ifstream programFile(filename.c_str());
 	vector<string> lines = vector<string>();
 	string temp;
 
 	// load all the lines into the vector
-	while(!programFile.eof())
+	while(true)
 	{
 		getline(programFile, temp);
+		if(programFile.eof()) break;
 		lines.push_back(temp);
 	}
 
@@ -93,12 +116,12 @@ int main(int argc, char** argv)
 	int longestLength = 0;
 	for(vector<string>::iterator i = lines.begin(); i != lines.end(); ++i)
 	{
-		if((*i).size() < longestLength) longestLength = (*i).size();
+		if((*i).size() > longestLength) longestLength = (*i).size();
 	}
 
 	// create the char matrix
-	int sizeX = longestLength;
-	int sizeY = lines.size();
+	int sizeX = lines.size();
+	int sizeY = longestLength;
 	char** program = new char*[sizeX];
 	for(int i = 0; i < sizeX; i++)
 	{
@@ -123,11 +146,12 @@ int main(int argc, char** argv)
 	bool skipNextCell = false;
 	bool endOfProgram = false;
 	Direction currDirection = RIGHT;
-	Stack<short> programStack = Stack<short>(); 
+	Stack<short> programStack = Stack<short>();
+	char currChar;
 
 	while(!endOfProgram)
 	{
-		char currChar = program[xPos][yPos];
+		currChar = program[xPos][yPos];
 		if(isStringMode)
 		{
 			if(currChar == '"') isStringMode = false;
@@ -285,18 +309,62 @@ int main(int argc, char** argv)
 				case '$':
 					programStack.drop();
 					break;
-				case '.':
-					a = programStack.pop();
-					cout << a;
-					// we don't need to worry about space/newlines mode
-					break;
-				case ',':
+				case '.': // output integer
 					a = programStack.pop();
 					cout << a;
 					if(newlinesOn) cout << endl;
-					else if(spacesOn) cout < " ";
+					else if(spacesOn) cout << " ";
+					break;
+				case ',': // output character
+					a = programStack.pop();
+					cout << static_cast<char>(a);
+					break;
+				case '#':
+					skipNextCell = true;
+					break;
+				case '&':
+					cin >> a;
+					programStack.push(a);
+					break;
+				case '~':
+					char input;
+					cin >> input;
+					programStack.push(static_cast<short>(input));
+					break;
+				case '@':
+					endOfProgram = true;
+					break;
+				case ' ':
+					break;
+				default: // something that should not have been executed
+					//
 					break;
 			}
 		}
+		switch(currDirection)
+		{
+			case RIGHT:
+				yPos++;
+				break;
+			case LEFT:
+				yPos--;
+				break;
+			case DOWN:
+				xPos++;
+				break;
+			case UP:
+				xPos--;
+				break;
+			default:
+				// this should never happen
+				cerr << "Error: invalid direction" << endl;
+				exit(1);
+				break;
+		}
+		// sizeX and sizeY are one more than the index of the farthest element
+		if(xPos < 0) xPos = sizeX - 1;
+		if(xPos >= sizeX) xPos = 0;
+		if(yPos < 0) yPos = sizeY - 1;
+		if(yPos >= sizeY) yPos = 0;
 	}
 }
