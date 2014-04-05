@@ -232,7 +232,7 @@ int main(int argc, char** argv)
 						// because if abortOn is off, 0 is pushed
 						programStack.push(0);
 					}
-					programStack.push(b / a);
+					if(a != 0) programStack.push(b / a);
 					break;
 				case '%':
 					a = programStack.pop();
@@ -254,7 +254,7 @@ int main(int argc, char** argv)
 						}
 						programStack.push(0);
 					}
-					programStack.push(b % a);
+					if(a != 0) programStack.push(b % a);
 					break;
 				case '!':
 					a = programStack.pop();
