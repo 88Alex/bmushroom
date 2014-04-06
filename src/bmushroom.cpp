@@ -19,7 +19,7 @@
 #include <iostream>
 #include <vector>
 #include <cstdlib> // for exit(), etc.
-#include <regex>
+#include <boost/regex.hpp>
 #include "stack.cpp"
 
 using namespace std;
@@ -70,32 +70,55 @@ int main(int argc, char** argv)
 	bool warningsOn = false;
 	bool newlinesOn = false;
 	bool spacesOn = false;
+	bool abortOnInvalid = false;
+	bool warnOnInvalid = false;
+	boost::basic_regex<char> tempRegex;
+	boost::smatch m; // dummy variable required by Boost
 
 	string arg;
 	for(int i = 1; i < argc; i++) // search all except for first and last
 	{
 		arg = argv[i];
-		if(arg.find("-h") != string::npos
+		tempRegex = boost::basic_regex<char>("^-[A-Za-z]*h");
+		if(boost::regex_search(arg, m, tempRegex)
 			|| arg.find("--help") != string::npos)
 		{
 			displayHelp();
 			exit(0);
 		}
-		if(arg.find("-a") != string::npos && !abortOn)
+		tempRegex = boost::basic_regex<char>("^-[A-Za-z]*a");
+		if(boost::regex_search(arg, m, tempRegex)
+			|| arg.find("--abort-on-error") != string::npos)
 		{
 			abortOn = true;
 		}
-		if(arg.find("-w") != string::npos && !warningsOn)
+		tempRegex = boost::basic_regex<char>("^-[A-Za-z]*w");
+		if(boost::regex_search(arg, m, tempRegex)
+			|| arg.find("--warn-on-error") != string::npos)
 		{
 			warningsOn = true;
 		}
-		if(arg.find("-n") != string::npos && !newlinesOn)
+		tempRegex = boost::basic_regex<char>("^-[A-Za-z]*n");
+		if(boost::regex_search(arg, m, tempRegex))
 		{
 			newlinesOn = true;
 		}
-		if(arg.find("-s") != string::npos && !spacesOn)
+		tempRegex = boost::basic_regex<char>("^-[A-Za-z]*s");
+		if(boost::regex_search(arg, m, tempRegex))
 		{
 			spacesOn = true;
+		}
+		tempRegex = boost::basic_regex<char>("^-[A-Za-z]*i");
+		if(boost::regex_search(arg, m, tempRegex)
+			|| arg.find("--abort-on-invalid") != string::npos)
+		{
+			abortOnInvalid = true;
+		}
+		tempRegex = boost::basic_regex<char>("^-[A-Za-z]*I");
+		if(boost::regex_search(arg, m, tempRegex)
+			|| arg.find("--warn-on-invalid") != string::npos)
+		{
+			warnOnInvalid = true;
 		}
 	}
 
@@ -337,7 +360,19 @@ int main(int argc, char** argv)
 				case ' ':
 					break;
 				default: // something that should not have been executed
-					//
+					if(abortOnInvalid)
+					{
+						cerr << "Error: " << filename << " @ " << xPos
+							<< ", " << yPos << ":" << endl;
+						cerr << "Invalid instruction " << currChar << endl;
+						exit(1);
+					}
+					else if(warnOnInvalid)
+					{
+						cerr << "Warning: " << filename << " @ " << xPos
+							<< ", " << yPos << ":" << endl;
+						cerr << "Invalid instruction " << currChar << endl;
+					}
 					break;
 			}
 		}
