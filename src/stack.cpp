@@ -38,6 +38,10 @@ class Stack
 		push(top);
 		push(top);
 	}
+	void clear()
+	{
+		elements.clear();
+	}
 	private:
 	std::vector<E> elements;
 };
