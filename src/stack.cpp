@@ -4,6 +4,14 @@
 #include <vector>
 #include <algorithm>
 
+#define DEBUG_ON
+#ifdef DEBUG_ON
+#include <iostream>
+#define DEBUG(code) code
+#else
+#define DEBUG(code)
+#endif
+
 template <class E>
 class Stack
 {

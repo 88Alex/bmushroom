@@ -172,8 +172,8 @@ int main(int argc, char** argv)
 	bool isStringMode = false;
 	bool skipNextCell = false;
 	bool isFloating = false; // are we "floating" with the ';' command?
-	Stack<Stack<short> > stackStack = Stack<Stack<short> >();
-	Stack<short> programStack = Stack<short>();
+	Stack<Stack<short>* > stackStack = Stack<Stack<short>* >();
+	Stack<short>* programStack = new Stack<short>();
 	Stack<short> tempStack = Stack<short>();
 	std::vector<short> elements;
 	stackStack.push(programStack);
@@ -188,7 +188,7 @@ int main(int argc, char** argv)
 		if(isStringMode)
 		{
 			if(currChar == '"') isStringMode = false;
-			else programStack.push(currChar);
+			else programStack->push(currChar);
 		}
 		else if(skipNextCell)
 		{
@@ -199,71 +199,71 @@ int main(int argc, char** argv)
 			switch(currChar)
 			{
 				case '0':
-					programStack.push(0);
+					programStack->push(0);
 					break;
 				case '1':
-					programStack.push(1);
+					programStack->push(1);
 					break;
 				case '2':
-					programStack.push(2);
+					programStack->push(2);
 					break;
 				case '3':
-					programStack.push(3);
+					programStack->push(3);
 					break;
 				case '4':
-					programStack.push(4);
+					programStack->push(4);
 					break;
 				case '5':
-					programStack.push(5);
+					programStack->push(5);
 					break;
 				case '6':
-					programStack.push(6);
+					programStack->push(6);
 					break;
 				case '7':
-					programStack.push(7);
+					programStack->push(7);
 					break;
 				case '8':
-					programStack.push(8);
+					programStack->push(8);
 					break;
 				case '9':
-					programStack.push(9);
+					programStack->push(9);
 					break;
 				case 'a':
-					programStack.push(10);
+					programStack->push(10);
 					break;
 				case 'b':
-					programStack.push(11);
+					programStack->push(11);
 					break;
 				case 'c':
-					programStack.push(12);
+					programStack->push(12);
 					break;
 				case 'd':
-					programStack.push(13);
+					programStack->push(13);
 					break;
 				case 'e':
-					programStack.push(14);
+					programStack->push(14);
 					break;
 				case 'f':
-					programStack.push(15);
+					programStack->push(15);
 					break;
 				case '+':
-					a = programStack.pop();
-					b = programStack.pop();
-					programStack.push(a + b);
+					a = programStack->pop();
+					b = programStack->pop();
+					programStack->push(a + b);
 					break;
 				case '-':
-					a = programStack.pop();
-					b = programStack.pop();
-					programStack.push(b - a);
+					a = programStack->pop();
+					b = programStack->pop();
+					programStack->push(b - a);
 					break;
 				case '*':
-					a = programStack.pop();
-					b = programStack.pop();
-					programStack.push(a * b);
+					a = programStack->pop();
+					b = programStack->pop();
+					programStack->push(a * b);
 					break;
 				case '/':
-					a = programStack.pop();
-					b = programStack.pop();
+					a = programStack->pop();
+					b = programStack->pop();
 					if(a == 0)
 					{
 						if(abortOn)
@@ -277,13 +277,13 @@ int main(int argc, char** argv)
 							cerr << "Warning: " << filename << " @ " << xPos << ", " << yPos << ":" << endl;
 							cerr << "Attempted division by 0" << endl;
 						}
-						programStack.push(0);
+						programStack->push(0);
 					}
-					if(a != 0) programStack.push(b / a);
+					if(a != 0) programStack->push(b / a);
 					break;
 				case '%':
-					a = programStack.pop();
-					b = programStack.pop();
+					a = programStack->pop();
+					b = programStack->pop();
 					if(a == 0)
 					{
 						if(abortOn)
@@ -297,20 +297,20 @@ int main(int argc, char** argv)
 							cerr << "Warning: " << filename << " @ " << xPos << ", " << yPos << ":" << endl;
 							cerr << "Attempted modular division by 0" << endl;
 						}
-						programStack.push(0);
+						programStack->push(0);
 					}
-					if(a != 0) programStack.push(b % a);
+					if(a != 0) programStack->push(b % a);
 					break;
 				case '!':
-					a = programStack.pop();
-					if(a == 0) programStack.push(1);
-					else programStack.push(0);
+					a = programStack->pop();
+					if(a == 0) programStack->push(1);
+					else programStack->push(0);
 					break;
 				case '`':
-					a = programStack.pop();
-					b = programStack.pop();
-					if(b > a) programStack.push(1);
-					else programStack.push(0);
+					a = programStack->pop();
+					b = programStack->pop();
+					if(b > a) programStack->push(1);
+					else programStack->push(0);
 					break;
 				case '>':
 					deltaX = 1;
@@ -360,8 +360,8 @@ int main(int argc, char** argv)
 					deltaY = -a; // movement left is now movement down
 					break;
 				case 'w': // compare
-					b = programStack.pop();
-					a = programStack.pop();
+					b = programStack->pop();
+					a = programStack->pop();
 					if(a > b) goto turnRight;
 					else if(a < b) goto turnLeft;
 					break;
@@ -370,17 +370,17 @@ int main(int argc, char** argv)
 					deltaY *= -1;
 					break;
 				case 'x':
-					deltaY = programStack.pop(); // pop dY first
-					deltaX = programStack.pop();
+					deltaY = programStack->pop(); // pop dY first
+					deltaX = programStack->pop();
 					break;
 				case '_':
-					a = programStack.pop();
+					a = programStack->pop();
 					deltaY = 0;
 					if(a == 0) deltaX = 1;
 					else deltaY = -1;
 					break;
 				case '|':
-					a = programStack.pop();
+					a = programStack->pop();
 					deltaX = 0;
 					if(a == 0) deltaY = 1;
 					else deltaY = -1;
@@ -391,38 +391,38 @@ int main(int argc, char** argv)
 				case '\'':
 					a = (xPos + deltaX) % sizeX;
 					b = (yPos + deltaY) % sizeY;
-					programStack.push(program[a][b]);
+					programStack->push(program[a][b]);
 					break;
 				case 's':
 					a = (xPos + deltaX) % sizeX;
 					b = (yPos + deltaY) % sizeY;
-					program[a][b] = programStack.pop();
+					program[a][b] = programStack->pop();
 					break;
 				case ':':
-					programStack.duplicate();
+					programStack->duplicate();
 					break;
 				case '\\':
-					programStack.swap();
+					programStack->swap();
 					break;
 				case '$':
-					programStack.drop();
+					programStack->drop();
 					break;
 				case 'n':
-					programStack.clear();
+					programStack->clear();
 					break;
 				case '{':
 					// TODO make sure this is correct
-					a = programStack.pop();
-					stackStack.push(*(new Stack<short>()));
+					a = programStack->pop();
+					stackStack.push(new Stack<short>());
 					programStack = stackStack.peek();
-					elements = stackStack.second().top(a);
-					programStack.push(elements);
+					elements = stackStack.second()->top(a);
+					programStack->push(elements);
 					break;
 				case '}':
 					// TODO make sure this is correct
-					a = programStack.pop();
-					elements = programStack.top(a);
-					stackStack.second().push(elements);
+					a = programStack->pop();
+					elements = programStack->top(a);
+					stackStack.second()->push(elements);
 					programStack = stackStack.second();
 					stackStack.pop();
 					break;
@@ -430,13 +430,13 @@ int main(int argc, char** argv)
 					// TODO
 					break;
 				case '.': // output integer
-					a = programStack.pop();
+					a = programStack->pop();
 					cout << a;
 					if(newlinesOn) cout << endl;
 					else if(spacesOn) cout << " ";
 					break;
 				case ',': // output character
-					a = programStack.pop();
+					a = programStack->pop();
 					cout << static_cast<char>(a);
 					break;
 				case '#':
@@ -446,7 +446,7 @@ int main(int argc, char** argv)
 					isFloating = true;
 					break;
 				case 'j':
-					a = programStack.pop();
+					a = programStack->pop();
 					xPos += deltaX * a;
 					xPos %= sizeX;
 					yPos += deltaY * a;
@@ -454,17 +454,17 @@ int main(int argc, char** argv)
 					break;
 				case '&':
 					cin >> a;
-					programStack.push(a);
+					programStack->push(a);
 					break;
 				case '~':
 					char input;
 					cin >> input;
-					programStack.push(static_cast<short>(input));
+					programStack->push(static_cast<short>(input));
 					break;
 				case '@':
 					exit(0);
 				case 'q':
-					a = programStack.pop();
+					a = programStack->pop();
 					exit(a);
 				case ' ':
 				case 'z': // explicit no-op
