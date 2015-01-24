@@ -125,6 +125,7 @@ int main(int argc, char** argv)
 			befunge93 = true;
 		}
 	}
+	
 	string filename = argv[argc - 1]; // the last of the arguments
 	ifstream programFile(filename.c_str());
 	vector<string> lines = vector<string>();
@@ -159,6 +160,7 @@ int main(int argc, char** argv)
 			else program[i][j] = ' ';
 		}
 	}
+	
 	// execute the program
 	int xPos = 0;
 	int yPos = 0;
@@ -169,14 +171,20 @@ int main(int argc, char** argv)
 	int b = 0; // temporary variable 2
 	bool isStringMode = false;
 	bool skipNextCell = false;
+	bool isFloating = false; // are we "floating" with the ';' command?
 	Stack<Stack<short> > stackStack = Stack<Stack<short> >();
 	Stack<short> programStack = Stack<short>();
 	Stack<short> tempStack = Stack<short>();
+	std::vector<short> elements;
 	stackStack.push(programStack);
 	char currChar;
 	while(true)
 	{
 		currChar = program[xPos][yPos];
+		if(isFloating)
+		{
+			if(currChar == ';') isFloating = false;
+		}
 		if(isStringMode)
 		{
 			if(currChar == '"') isStringMode = false;
@@ -340,22 +348,30 @@ int main(int argc, char** argv)
 					}
 					break;
 				case ']': // turn right
+				turnRight:
 					a = -deltaY; // previous movement up
 					deltaY = deltaX; // movement right is now movement down
 					deltaX = -a; // movement up is now movement right
 					break;
 				case '[': // turn left
+				turnLeft:
 					a = deltaX; // previous movement right
 					deltaX = deltaY; // movement down is now movement right
 					deltaY = -a; // movement left is now movement down
+					break;
+				case 'w': // compare
+					b = programStack.pop();
+					a = programStack.pop();
+					if(a > b) goto turnRight;
+					else if(a < b) goto turnLeft;
 					break;
 				case 'r':
 					deltaX *= -1;
 					deltaY *= -1;
 					break;
 				case 'x':
+					deltaY = programStack.pop(); // pop dY first
 					deltaX = programStack.pop();
-					deltaY = programStack.pop();
 					break;
 				case '_':
 					a = programStack.pop();
@@ -395,10 +411,20 @@ int main(int argc, char** argv)
 					programStack.clear();
 					break;
 				case '{':
-					// TODO
+					// TODO make sure this is correct
+					a = programStack.pop();
+					stackStack.push(*(new Stack<short>()));
+					programStack = stackStack.peek();
+					elements = stackStack.second().top(a);
+					programStack.push(elements);
 					break;
 				case '}':
-					// TODO
+					// TODO make sure this is correct
+					a = programStack.pop();
+					elements = programStack.top(a);
+					stackStack.second().push(elements);
+					programStack = stackStack.second();
+					stackStack.pop();
 					break;
 				case 'u':
 					// TODO
@@ -415,6 +441,16 @@ int main(int argc, char** argv)
 					break;
 				case '#':
 					skipNextCell = true;
+					break;
+				case ';':
+					isFloating = true;
+					break;
+				case 'j':
+					a = programStack.pop();
+					xPos += deltaX * a;
+					xPos %= sizeX;
+					yPos += deltaY * a;
+					yPos %= sizeY;
 					break;
 				case '&':
 					cin >> a;
