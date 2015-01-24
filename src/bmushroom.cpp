@@ -35,7 +35,9 @@ void displayHelp()
 	cout << "  -w, --warn-on-error:" << endl;
 	cout << "    warn, but do not abort, if an error occurs" << endl;
 	cout << "  " << endl;
-	cout << "  (note: default action on errors is to do nothing)" << endl;
+	cout << "  (note: default action on errors is to do nothing:" << endl;
+	cout << "  when popping from an empty stack, 0 will be provided," << endl;
+	cout << "  and division by 0 will result in 0 being count as 'r'.)" << endl;
 	cout << "  (note: it is strongly advised to use either -a or -w)" << endl;
 	cout << "  (note: -a overrides -w if both are set)" << endl;
 	cout << endl;
@@ -45,12 +47,13 @@ void displayHelp()
 	cout << "    (useful when outputting a long list of numbers)" << endl;
 	cout << "  (note: -l overrides -s if both are set)" << endl;
 	cout << endl;
-	cout << "  -i, --abort-on-invalid:" << endl;
-	cout << "    abort immediately if an invalid command is executed" << endl;
+	cout << "  -u, --abort-on-unknown:" << endl;
+	cout << "    abort immediately if an unknown command is executed" << endl;
 	cout << "    (useful to make sure comments aren't being executed)" << endl;
-	cout << "  -I, --warn-on-invalid:" << endl;
-	cout << "    warn if an invalid command is executed" << endl;
+	cout << "  -U, --warn-on-unknown:" << endl;
+	cout << "    warn if an unknown command is executed" << endl;
 	cout << "    (useful when debugging)" << endl;
+	cout << " (note: -u overrides -U if both are set)" << endl;
 	cout << endl;
 	cout << "  -b, --befunge93:" << endl;
 	cout << "    run program in Befunge93 compatibility mode" << endl;
@@ -63,31 +66,27 @@ int main(int argc, char** argv)
 		displayHelp();
 		exit(0);
 	}
-
 	bool abortOn = false;
 	bool warningsOn = false;
 	bool newlinesOn = false;
 	bool spacesOn = false;
-	bool abortOnInvalid = false;
-	bool warnOnInvalid = false;
+	bool abortOnUnknown = false;
+	bool warnOnUnknown = false;
 	bool befunge93 = false;
 	boost::basic_regex<char> tempRegex;
 	boost::smatch m; // dummy variable required by Boost
-
 	string arg;
 	for(int i = 1; i < argc; i++) // search all except for first and last
 	{
 		arg = argv[i];
 		tempRegex = boost::basic_regex<char>("^-[A-Za-z]*h");
-		if(boost::regex_search(arg, m, tempRegex)
-			|| arg.find("--help") != string::npos)
+		if(boost::regex_search(arg, m, tempRegex) || arg.find("--help") != string::npos)
 		{
 			displayHelp();
 			exit(0);
 		}
 		tempRegex = boost::basic_regex<char>("^-[A-Za-z]*a");
-		if(boost::regex_search(arg, m, tempRegex)
-			|| arg.find("--abort-on-error") != string::npos)
+		if(boost::regex_search(arg, m, tempRegex) || arg.find("--abort-on-error") != string::npos)
 		{
 			abortOn = true;
 		}
@@ -109,15 +108,15 @@ int main(int argc, char** argv)
 		}
 		tempRegex = boost::basic_regex<char>("^-[A-Za-z]*i");
 		if(boost::regex_search(arg, m, tempRegex)
-			|| arg.find("--abort-on-invalid") != string::npos)
+			|| arg.find("--abort-on-unknown") != string::npos)
 		{
-			abortOnInvalid = true;
+			abortOnUnknown = true;
 		}
 		tempRegex = boost::basic_regex<char>("^-[A-Za-z]*I");
 		if(boost::regex_search(arg, m, tempRegex)
-			|| arg.find("--warn-on-invalid") != string::npos)
+			|| arg.find("--warn-on-unknown") != string::npos)
 		{
-			warnOnInvalid = true;
+			warnOnUnknown = true;
 		}
 		tempRegex = boost::basic_regex<char>("^-[A-Za-z]*b");
 		if(boost::regex_search(arg, m, tempRegex)
@@ -126,12 +125,10 @@ int main(int argc, char** argv)
 			befunge93 = true;
 		}
 	}
-
 	string filename = argv[argc - 1]; // the last of the arguments
 	ifstream programFile(filename.c_str());
 	vector<string> lines = vector<string>();
 	string temp;
-
 	// load all the lines into the vector
 	while(true)
 	{
@@ -139,14 +136,12 @@ int main(int argc, char** argv)
 		if(programFile.eof()) break;
 		lines.push_back(temp);
 	}
-
 	// find the length of the longest line
 	int longestLength = 1;
 	for(vector<string>::iterator i = lines.begin(); i != lines.end(); ++i)
 	{
 		if((*i).size() > longestLength) longestLength = (*i).size();
 	}
-
 	// create the char matrix
 	int sizeX = longestLength;
 	int sizeY = lines.size();
@@ -155,7 +150,6 @@ int main(int argc, char** argv)
 	{
 		program[i] = new char[sizeY];
 	} // amazingly this is the only way to do this
-
 	for(int i = 0; i < sizeX; i++)
 	{
 		for(int j = 0; j < sizeY; j++)
@@ -165,10 +159,10 @@ int main(int argc, char** argv)
 			else program[i][j] = ' ';
 		}
 	}
-
 	// execute the program
 	int xPos = 0;
 	int yPos = 0;
+	// initial movement is to the right
 	int deltaX = 1;
 	int deltaY = 0;
 	int a = 0; // temporary variable 1
@@ -180,7 +174,6 @@ int main(int argc, char** argv)
 	Stack<short> tempStack = Stack<short>();
 	stackStack.push(programStack);
 	char currChar;
-
 	while(true)
 	{
 		currChar = program[xPos][yPos];
@@ -267,19 +260,15 @@ int main(int argc, char** argv)
 					{
 						if(abortOn)
 						{
-							cerr << "Error: " << filename << " @ " << xPos
-								<< ", " << yPos << ":" << endl;
+							cerr << "Error: " << filename << " @ " << xPos << ", " << yPos << ":" << endl;
 							cerr << "Attempted division by 0" << endl;
 							exit(1);
 						}
 						else if(warningsOn)
 						{
-							cerr << "Warning: " << filename << " @ " << xPos
-								<< ", " << yPos << ":" << endl;
+							cerr << "Warning: " << filename << " @ " << xPos << ", " << yPos << ":" << endl;
 							cerr << "Attempted division by 0" << endl;
 						}
-						// this code gets executed no matter what warningsOn is
-						// because if abortOn is off, 0 is pushed
 						programStack.push(0);
 					}
 					if(a != 0) programStack.push(b / a);
@@ -291,15 +280,13 @@ int main(int argc, char** argv)
 					{
 						if(abortOn)
 						{
-							cerr << "Error: " << filename << " @ " << xPos
-								<< ", " << yPos << ":" << endl;
+							cerr << "Error: " << filename << " @ " << xPos << ", " << yPos << ":" << endl;
 							cerr << "Attempted modular division by 0" << endl;
 							exit(1);
 						}
 						else if(warningsOn)
 						{
-							cerr << "Warning: " << filename << " @ " << xPos
-								<< ", " << yPos << ":" << endl;
+							cerr << "Warning: " << filename << " @ " << xPos << ", " << yPos << ":" << endl;
 							cerr << "Attempted modular division by 0" << endl;
 						}
 						programStack.push(0);
@@ -353,14 +340,14 @@ int main(int argc, char** argv)
 					}
 					break;
 				case ']': // turn right
-					a = deltaY;
-					deltaY = deltaX;
-					deltaX = -a;
+					a = -deltaY; // previous movement up
+					deltaY = deltaX; // movement right is now movement down
+					deltaX = -a; // movement up is now movement right
 					break;
 				case '[': // turn left
-					a = deltaX;
-					deltaX = deltaY;
-					deltaY = -a;
+					a = deltaX; // previous movement right
+					deltaX = deltaY; // movement down is now movement right
+					deltaY = -a; // movement left is now movement down
 					break;
 				case 'r':
 					deltaX *= -1;
@@ -444,27 +431,26 @@ int main(int argc, char** argv)
 					a = programStack.pop();
 					exit(a);
 				case ' ':
+				case 'z': // explicit no-op
 					break;
 				default: // something that should not have been executed
-					if(abortOnInvalid)
+					if(abortOnUnknown)
 					{
-						cerr << "Error: " << filename << " @ " << xPos
-							<< ", " << yPos << ":" << endl;
-						cerr << "Invalid instruction " << currChar << endl;
+						cerr << "Error: " << filename << " @ " << xPos << ", " << yPos << ":" << endl;
+						cerr << "Unknown instruction " << currChar << endl;
 						exit(1);
 					}
-					else if(warnOnInvalid)
+					else if(warnOnUnknown)
 					{
-						cerr << "Warning: " << filename << " @ " << xPos
-							<< ", " << yPos << ":" << endl;
-						cerr << "Invalid instruction " << currChar << endl;
+						cerr << "Warning: " << filename << " @ " << xPos << ", " << yPos << ":" << endl;
+						cerr << "Unknown instruction " << currChar << endl;
 					}
 					break;
-			}
-		}
+			} // end main interpreter switch
+		} // end modal if-then-else block
 		xPos += deltaX;
 		yPos += deltaY;
 		xPos %= sizeX;
 		yPos %= sizeY;
-	}
-}
+	} // end main interpreter loop
+} // end main function
