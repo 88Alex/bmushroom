@@ -411,7 +411,6 @@ int main(int argc, char** argv)
 					programStack->clear();
 					break;
 				case '{':
-					// TODO make sure this is correct
 					a = programStack->pop();
 					stackStack.push(new Stack<short>());
 					programStack = stackStack.peek();
@@ -419,9 +418,9 @@ int main(int argc, char** argv)
 					programStack->push(elements);
 					break;
 				case '}':
-					// TODO make sure this is correct
 					a = programStack->pop();
 					elements = programStack->top(a);
+					delete programStack;
 					stackStack.second()->push(elements);
 					programStack = stackStack.second();
 					stackStack.pop();
