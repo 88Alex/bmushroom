@@ -366,6 +366,7 @@ int main(int argc, char** argv)
 					else if(a < b) goto turnLeft;
 					break;
 				case 'r':
+				nonFatalError:
 					deltaX *= -1;
 					deltaY *= -1;
 					break;
@@ -418,6 +419,21 @@ int main(int argc, char** argv)
 					programStack->push(elements);
 					break;
 				case '}':
+					if(!stackStack.second())
+					{
+						if(abortOn)
+						{
+							cerr << "Error: " << filename << " @ " << xPos << ", " << yPos << ":" << endl;
+							cerr << "Program tried to execute '}' but there is only one stack" << endl;
+							exit(1);
+						}
+						else if(warningsOn)
+						{
+							cerr << "Warning: " << filename << " @ " << xPos << ", " << yPos << ":" << endl;
+							cerr << "Program tried to execute '}' but there is only one stack" << endl;
+						}
+						goto nonFatalError;
+					}
 					a = programStack->pop();
 					elements = programStack->top(a);
 					delete programStack;
@@ -427,6 +443,27 @@ int main(int argc, char** argv)
 					break;
 				case 'u':
 					// TODO
+					if(!stackStack.second())
+					{
+						if(abortOn)
+						{
+							cerr << "Error: " << filename << " @ " << xPos << ", " << yPos << ":" << endl;
+							cerr << "Program tried to execute 'u' but there is only one stack" << endl;
+							exit(1);
+						}
+						else if(warningsOn)
+						{
+							cerr << "Warning: " << filename << " @ " << xPos << ", " << yPos << ":" << endl;
+							cerr << "Program tried to execute 'u' but there is only one stack" << endl;
+						}
+						goto nonFatalError;
+					}
+					a = programStack->pop();
+					for(int k = 0; k < a; k++)
+					{
+						b = stackStack.second()->pop();
+						programStack->push(b);
+					}
 					break;
 				case '.': // output integer
 					a = programStack->pop();
