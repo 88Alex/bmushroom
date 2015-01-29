@@ -21,6 +21,7 @@
 #include <cstdlib> // for exit(), etc.
 #include <boost/regex.hpp>
 #include "stack.cpp"
+#include "fungespace.hpp"
 
 using namespace std;
 
@@ -37,7 +38,7 @@ void displayHelp()
 	cout << "  " << endl;
 	cout << "  (note: default action on errors is to do nothing:" << endl;
 	cout << "  when popping from an empty stack, 0 will be provided," << endl;
-	cout << "  and division by 0 will result in 0 being count as 'r'.)" << endl;
+	cout << "  and division by 0 will result in 0, and being counted as 'r'.)" << endl;
 	cout << "  (note: it is strongly advised to use either -a or -w)" << endl;
 	cout << "  (note: -a overrides -w if both are set)" << endl;
 	cout << endl;
@@ -55,8 +56,6 @@ void displayHelp()
 	cout << "    (useful when debugging)" << endl;
 	cout << " (note: -u overrides -U if both are set)" << endl;
 	cout << endl;
-	cout << "  -b, --befunge93:" << endl;
-	cout << "    run program in Befunge93 compatibility mode" << endl;
 }
 
 int main(int argc, char** argv)
@@ -72,7 +71,6 @@ int main(int argc, char** argv)
 	bool spacesOn = false;
 	bool abortOnUnknown = false;
 	bool warnOnUnknown = false;
-	bool befunge93 = false;
 	boost::basic_regex<char> tempRegex;
 	boost::smatch m; // dummy variable required by Boost
 	string arg;
@@ -118,12 +116,6 @@ int main(int argc, char** argv)
 		{
 			warnOnUnknown = true;
 		}
-		tempRegex = boost::basic_regex<char>("^-[A-Za-z]*b");
-		if(boost::regex_search(arg, m, tempRegex)
-			|| arg.find("--befunge93") != string::npos)
-		{
-			befunge93 = true;
-		}
 	}
 	
 	string filename = argv[argc - 1]; // the last of the arguments
@@ -143,21 +135,12 @@ int main(int argc, char** argv)
 	{
 		if((*i).size() > longestLength) longestLength = (*i).size();
 	}
-	// create the char matrix
-	int sizeX = longestLength;
-	int sizeY = lines.size();
-	char** program = new char*[sizeX];
-	for(int i = 0; i < sizeX; i++)
+	FungeSpace program = FungeSpace();
+	for(int i = 0; i < lines.size(); i++)
 	{
-		program[i] = new char[sizeY];
-	} // amazingly this is the only way to do this
-	for(int i = 0; i < sizeX; i++)
-	{
-		for(int j = 0; j < sizeY; j++)
+		for(int j = 0; j < lines[i].size(); j++)
 		{
-			string line = lines.at(j);
-			if(i < line.length()) program[i][j] = line.at(i);
-			else program[i][j] = ' ';
+			program.set(j, i, lines[i][j]); // x and y are reversed
 		}
 	}
 	
@@ -180,7 +163,7 @@ int main(int argc, char** argv)
 	char currChar;
 	while(true)
 	{
-		currChar = program[xPos][yPos];
+		currChar = program.get(xPos, yPos);
 		if(isFloating)
 		{
 			if(currChar == ';') isFloating = false;
@@ -278,6 +261,7 @@ int main(int argc, char** argv)
 							cerr << "Attempted division by 0" << endl;
 						}
 						programStack->push(0);
+						goto nonFatalError;
 					}
 					if(a != 0) programStack->push(b / a);
 					break;
@@ -298,6 +282,7 @@ int main(int argc, char** argv)
 							cerr << "Attempted modular division by 0" << endl;
 						}
 						programStack->push(0);
+						goto nonFatalError;
 					}
 					if(a != 0) programStack->push(b % a);
 					break;
@@ -390,14 +375,16 @@ int main(int argc, char** argv)
 					isStringMode = true;
 					break;
 				case '\'':
-					a = (xPos + deltaX) % sizeX;
-					b = (yPos + deltaY) % sizeY;
-					programStack->push(program[a][b]);
+					// TODO implement wrapping
+					a = (xPos + deltaX);
+					b = (yPos + deltaY);
+					programStack->push(program.get(a, b));
 					break;
 				case 's':
-					a = (xPos + deltaX) % sizeX;
-					b = (yPos + deltaY) % sizeY;
-					program[a][b] = programStack->pop();
+					// TODO implement wrapping
+					a = (xPos + deltaX);
+					b = (yPos + deltaY);
+					program.set(a, b, programStack->pop());
 					break;
 				case ':':
 					programStack->duplicate();
@@ -483,10 +470,9 @@ int main(int argc, char** argv)
 					break;
 				case 'j':
 					a = programStack->pop();
+					// TODO implement wrapping
 					xPos += deltaX * a;
-					xPos %= sizeX;
 					yPos += deltaY * a;
-					yPos %= sizeY;
 					break;
 				case '&':
 					cin >> a;
@@ -504,6 +490,7 @@ int main(int argc, char** argv)
 					exit(a);
 				case ' ':
 				case 'z': // explicit no-op
+				case 0:
 					break;
 				default: // something that should not have been executed
 					if(abortOnUnknown)
@@ -522,7 +509,7 @@ int main(int argc, char** argv)
 		} // end modal if-then-else block
 		xPos += deltaX;
 		yPos += deltaY;
-		xPos %= sizeX;
-		yPos %= sizeY;
+		if(xPos > 2147483648) xPos -= 4294967296;
+		if(yPos > 2147483648) yPos -= 4294967296;
 	} // end main interpreter loop
 } // end main function
