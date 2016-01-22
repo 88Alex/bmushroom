@@ -257,13 +257,13 @@ int main(int argc, char** argv)
 						}
 						else if(warningsOn)
 						{
-							cerr << "Warning: " << filename << " @ " << xPos << ", " << yPos << ":" << endl;
-							cerr << "Attempted division by 0" << endl;
+							cout << "Warning: " << filename << " @ " << xPos << ", " << yPos << ":" << endl;
+							cout << "Attempted division by 0" << endl;
 						}
 						programStack->push(0);
 						goto nonFatalError;
 					}
-					if(a != 0) programStack->push(b / a);
+					else programStack->push(b / a);
 					break;
 				case '%':
 					a = programStack->pop();
@@ -284,7 +284,7 @@ int main(int argc, char** argv)
 						programStack->push(0);
 						goto nonFatalError;
 					}
-					if(a != 0) programStack->push(b % a);
+					else programStack->push(b % a);
 					break;
 				case '!':
 					a = programStack->pop();
@@ -336,7 +336,7 @@ int main(int argc, char** argv)
 				turnRight:
 					a = -deltaY; // previous movement up
 					deltaY = deltaX; // movement right is now movement down
-					deltaX = -a; // movement up is now movement right
+					deltaX = a; // movement up is now movement right
 					break;
 				case '[': // turn left
 				turnLeft:
@@ -490,7 +490,6 @@ int main(int argc, char** argv)
 					exit(a);
 				case ' ':
 				case 'z': // explicit no-op
-				case 0:
 					break;
 				default: // something that should not have been executed
 					if(abortOnUnknown)
